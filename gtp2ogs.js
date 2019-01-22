@@ -744,7 +744,6 @@ class Game {
         this.my_color = null;
         this.corr_move_pending = false;
         this.processing = false;
-	this.handicap_moves = [];    // Handicap stones waiting to be sent when bot is playing black.
 
         this.log("Connecting to game.");
 
@@ -1030,12 +1029,6 @@ class Game {
 	    return;
 	}
 	
-	// Already have handicap stones ? Return next one.
-	if (this.handicap_moves.length) {
-	    this.uploadMove(this.handicap_moves.shift());
-	    return;
-	}
-
 	let warnAndResign = (msg) => {
 	    this.log(msg);
 	    if (this.bot) this.bot.kill();
@@ -1043,8 +1036,8 @@ class Game {
 	    this.uploadMove({'resign': true});
 	}
 	
-	// Get handicap stones from bot and return first one.
-	let storeMoves = (moves) => {
+	// Get handicap stones from bot and send them all together
+	let sendMoves = (moves) => {
 	    if (moves.length != this.state.handicap) {  // Sanity check
 		warnAndResign("place_free_handicap returned wrong number of handicap stones, resigning.");
 		return;
@@ -1054,13 +1047,11 @@ class Game {
 		    warnAndResign("place_free_handicap returned a pass, resigning.");
 		    return;
 		}
-	    
-	    this.handicap_moves = moves;
-	    this.uploadMove(this.handicap_moves.shift());
+            for (let i in moves)
+		this.uploadMove(moves[i]);
 	};
 	
-	this.getBotMoves("place_free_handicap " + this.state.handicap, storeMoves, sendPass);
-	
+	this.getBotMoves("place_free_handicap " + this.state.handicap, sendMoves, sendPass);
     } /* }}} */
 
     auth(obj) { /* {{{ */
